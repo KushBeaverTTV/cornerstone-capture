@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "cornerstone.capture",
+  "name": "Cornerstone Capture",
+  "version": "2.0.0",
+  "author": "Kush Beaver Productionz",
+  "license": "MIT",
+  "description": "Screen recording pill on your other monitor plus a bar widget for the 30s replay clip buffer, quick recording, and recent clips shelf.",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Cornerstone Capture",
+    "description": "Replay clip buffer status, quick record / save clip, and recent clips shelf.",
+    "category": "Media",
+    "aliases": [
+      "capture",
+      "clips",
+      "record",
+      "cornerstone-capture"
+    ],
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {}
+  }
+}
