@@ -42,6 +42,8 @@ function parseClipsPayload(text) {
     }
   }) : []
   return {
+    backend: String(d.backend || "gpu-screen-recorder").slice(0, 32),
+    replaySupported: d.replaySupported !== false,
     clipsActive: d.clipsActive === true,
     clipSeconds: Math.max(2, parseInt(d.clipSeconds, 10) || 30),
     recordAudio: String(d.recordAudio || "focused-app"),

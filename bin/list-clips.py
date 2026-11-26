@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
-"""Returns JSON with replay-buffer status, capture settings, and recent clips/recordings."""
+"""Returns JSON with replay-buffer status, capture backend, settings, and recent clips/recordings."""
+import glob
 import json
 import os
+import platform
 import re
+import shutil
 import subprocess
 
 HOME = os.path.expanduser("~")
 CONFIG = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.join(HOME, ".config"), "cornerstone-capture", "config")
 VIDEO_EXTS = (".mp4", ".mkv", ".webm", ".mov")
+UNIT_DIRS = (
+    os.path.join(HOME, ".config/systemd/user"),
+    "/etc/systemd/user",
+    "/usr/lib/systemd/user",
+)
 
 
 def read_config():
@@ -22,6 +30,23 @@ def read_config():
     except Exception:
         pass
     return cfg
+
+
+def is_apple_silicon():
+    if platform.machine() == "aarch64":
+        for p in sorted(glob.glob("/sys/class/drm/card*/device/uevent")):
+            try:
+                with open(p) as f:
+                    txt = f.read()
+                if "DRIVER=asahi" in txt or "DRIVER=apple-drm" in txt:
+                    return True
+            except Exception:
+                pass
+    return False
+
+
+def has_clips_service():
+    return any(os.path.exists(os.path.join(d, "cornerstone-clips.service")) for d in UNIT_DIRS)
 
 
 def clips_active():
@@ -60,10 +85,16 @@ def main():
     cfg = read_config()
     rec_dir = os.path.expanduser(cfg["RECORD_DIR"] or "~/Videos")
     clips_dir = os.path.expanduser(cfg["CLIP_DIR"] or os.path.join(rec_dir, "Clips"))
+    apple = is_apple_silicon()
+    gsr_ok = bool(shutil.which("gpu-screen-recorder")) and not apple
+    backend = "gpu-screen-recorder" if gsr_ok else ("wf-recorder" if shutil.which("wf-recorder") else "omarchy")
+    replay_supported = gsr_ok and has_clips_service()
     items = scan_dir(clips_dir, "clip") + scan_dir(rec_dir, "recording")
     items.sort(key=lambda x: -x["mtime"])
     print(json.dumps({
-        "clipsActive": clips_active(),
+        "backend": backend,
+        "replaySupported": replay_supported,
+        "clipsActive": clips_active() if replay_supported else False,
         "clipSeconds": int(cfg["CLIP_SECONDS"]) if cfg["CLIP_SECONDS"].isdigit() else 30,
         "recordAudio": cfg["RECORD_AUDIO"] or "focused-app",
         "clipsDir": clips_dir,

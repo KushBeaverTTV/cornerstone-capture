@@ -26,6 +26,8 @@ Item {
   property bool refreshPending: false
 
   // Replay buffer & clips shelf state
+  property string backend: "gpu-screen-recorder"
+  property bool replaySupported: true
   property bool clipsActive: false
   property int clipSeconds: 30
   property string recordAudio: "focused-app"
@@ -62,6 +64,8 @@ Item {
   function applyClips(text) {
     var d = Capture.parseClipsPayload(text)
     if (!d) return
+    backend = d.backend
+    replaySupported = d.replaySupported
     clipsActive = d.clipsActive
     clipSeconds = d.clipSeconds
     recordAudio = d.recordAudio
@@ -157,10 +161,10 @@ Item {
     }
   }
 
-  // Idle watch: exit code only, no parsing.
+  // Idle watch: exit code only, supports both gpu-screen-recorder and wf-recorder.
   Process {
     id: watchProc
-    command: ["pgrep", "-x", "gpu-screen-reco"]
+    command: ["pgrep", "-x", "gpu-screen-reco|wf-recorder"]
     onExited: function(exitCode) {
       if ((exitCode === 0) !== root.recording) {
         root.refresh()

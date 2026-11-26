@@ -41,6 +41,8 @@ Panel {
 
   readonly property bool recording: service ? service.recording : false
   readonly property int elapsed: service ? service.elapsed : 0
+  readonly property string backend: service ? service.backend : "gpu-screen-recorder"
+  readonly property bool replaySupported: service ? service.replaySupported : true
   readonly property bool clipsActive: service ? service.clipsActive : false
   readonly property int clipSeconds: service ? service.clipSeconds : 30
   readonly property string recordAudio: service ? service.recordAudio : "focused-app"
@@ -49,7 +51,9 @@ Panel {
 
   readonly property string barTooltip: recording
     ? "Recording · " + (service ? service.clock(elapsed) : "0:00")
-    : (clipsActive ? "Capture · " + clipSeconds + "s replay buffer armed" : "Capture · Replay buffer off")
+    : (!replaySupported
+        ? "Capture · " + backend + " (middle-click to record)"
+        : (clipsActive ? "Capture · " + clipSeconds + "s replay buffer armed" : "Capture · Replay buffer off"))
 
   onOpenedChanged: if (opened && service) { service.refresh(); service.refreshClips() }
 
@@ -190,7 +194,8 @@ Panel {
             Text {
               textFormat: Text.PlainText
               text: (root.recording ? "Recording " + (root.service ? root.service.clock(root.elapsed) : "")
-                     : (root.clipsActive ? "Replay buffer armed (" + root.clipSeconds + "s)" : "Replay buffer off"))
+                     : (!root.replaySupported ? "Ready · " + root.backend
+                        : (root.clipsActive ? "Replay buffer armed (" + root.clipSeconds + "s)" : "Replay buffer off")))
                     + " · audio: " + root.recordAudio
               color: root.recording ? Color.urgent : root.muted
               font.family: root.fontFamily
@@ -279,7 +284,9 @@ Panel {
           Text {
             visible: root.recentClips.length === 0
             textFormat: Text.PlainText
-            text: "No clips yet — press Alt+S to save the last " + root.clipSeconds + "s"
+            text: root.replaySupported
+              ? "No clips yet — press Alt+S to save the last " + root.clipSeconds + "s"
+              : "No recordings yet — click Record to capture via " + root.backend
             color: root.muted
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption
