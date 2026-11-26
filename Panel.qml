@@ -71,9 +71,14 @@ Panel {
     fixedHeight: vertical ? Math.max(Style.bar.iconSlot, pill.implicitHeight + Style.space(6)) : -1
     tooltipText: root.opened ? "" : root.barTooltip
     onPressed: function(code) {
-      if (code === Qt.RightButton && root.service) root.service.saveClip()
-      else if (code === Qt.MiddleButton && root.service) root.service.toggleRecord()
-      else root.toggle()
+      if (code === Qt.RightButton && root.service) {
+        if (root.replaySupported) root.service.saveClip()
+        else root.service.toggleRecord()
+      } else if (code === Qt.MiddleButton && root.service) {
+        root.service.toggleRecord()
+      } else {
+        root.toggle()
+      }
     }
 
     Row {
@@ -210,14 +215,17 @@ Panel {
           spacing: Style.space(8)
 
           ActionBtn {
-            width: (parent.width - Style.space(8)) / 2
-            label: root.recording ? "■  Stop Recording" : "●  Record (Alt+PrtSc)"
+            width: root.replaySupported
+              ? (parent.width - Style.space(8)) / 2
+              : (parent.width - Style.space(8)) * 0.62
+            label: root.recording ? "■  Stop Recording" : (root.replaySupported ? "●  Record (Alt+PrtSc)" : "●  Record Screen")
             tint: root.recording ? Color.urgent : root.foreground
             fill: root.recording ? 0.35 : 0.14
             onActivated: { if (root.service) root.service.toggleRecord(); root.close() }
           }
 
           ActionBtn {
+            visible: root.replaySupported
             width: (parent.width - Style.space(8)) / 2
             label: "󰕧  Save " + root.clipSeconds + "s Clip"
             tint: Color.accent
@@ -225,9 +233,17 @@ Panel {
             enabledBtn: root.clipsActive
             onActivated: { if (root.service) root.service.saveClip(); root.close() }
           }
+
+          ActionBtn {
+            visible: !root.replaySupported
+            width: (parent.width - Style.space(8)) * 0.38
+            label: "Settings"
+            onActivated: { if (root.service) root.service.openSettings(); root.close() }
+          }
         }
 
         Row {
+          visible: root.replaySupported
           width: parent.width
           spacing: Style.space(8)
 
@@ -396,7 +412,9 @@ Panel {
           width: parent.width
           textFormat: Text.PlainText
           wrapMode: Text.WordWrap
-          text: "Right-click = save clip · middle-click = record · s clip · r record · b buffer"
+          text: root.replaySupported
+            ? "Right-click = save clip · middle-click = record · s clip · r record · b buffer"
+            : "Right/middle-click = record · r record"
           color: root.muted
           font.family: root.fontFamily
           font.pixelSize: Style.font.caption
